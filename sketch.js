@@ -5,6 +5,9 @@ let gameState = "start";
 let isPlayerTurn = true;
 let turnCount = 0;
 const maxTurns = 10;
+let pmouseIsPressed = false;
+let processingTurn = false;
+let lastActionTime = 0;
 
 function setup() {
   createCanvas(800, 600);
@@ -25,22 +28,30 @@ function draw() {
     text("Click to Start", width / 2, height / 2);
     if (mouseIsPressed && !pmouseIsPressed) {
       gameState = "playing";
+      explosionSize = 0;
+      targetExplosionSize = 0;
+      turnCount = 0;
+      isPlayerTurn = true;
     }
   } else if (gameState === "playing") {
-    if (isPlayerTurn) {
+    if (isPlayerTurn && !processingTurn) {
       drawPlayerActions();
       if (mouseIsPressed && !pmouseIsPressed) {
         checkButtonClicks();
       }
-    } else {
-      if (animationFrame === 0) {
+    } else if (!isPlayerTurn && !processingTurn) {
+      if (animationFrame === 0 && millis() - lastActionTime > 1000) {
+        processingTurn = true;
         aiAction();
+        processingTurn = false;
       }
       animateExplosion();
     }
     fill(255);
     text(`Explosion Size: ${floor(explosionSize)}`, width / 2, 50);
     text(`Turn: ${turnCount}/${maxTurns}`, width / 2, 80);
+    fill(255, 255, 0);
+    text(`Player Turn: ${isPlayerTurn ? "Yes" : "No"}`, width / 2, height - 50);
   } else if (gameState === "gameOver") {
     fill(255);
     if (explosionSize >= 100) {
@@ -59,16 +70,19 @@ function draw() {
   pmouseIsPressed = mouseIsPressed;
 }
 
-let pmouseIsPressed = false;
-
 function checkButtonClicks() {
+  if (millis() - lastActionTime < 500) return;
+  
   if (mouseY > height - 150 && mouseY < height - 100) {
     if (mouseX > 50 && mouseX < 200) {
       playerAction("rally");
+      lastActionTime = millis();
     } else if (mouseX > 250 && mouseX < 400) {
       playerAction("speech");
+      lastActionTime = millis();
     } else if (mouseX > 450 && mouseX < 600) {
       playerAction("chaos");
+      lastActionTime = millis();
     }
   }
 }
@@ -76,17 +90,26 @@ function checkButtonClicks() {
 function mousePressed() {
   if (gameState === "start") {
     gameState = "playing";
+    explosionSize = 0;
+    targetExplosionSize = 0;
+    turnCount = 0;
+    isPlayerTurn = true;
     return;
   }
   
-  if (gameState === "playing" && isPlayerTurn) {
+  if (gameState === "playing" && isPlayerTurn && !processingTurn) {
+    if (millis() - lastActionTime < 500) return;
+    
     if (mouseY > height - 150 && mouseY < height - 100) {
       if (mouseX > 50 && mouseX < 200) {
         playerAction("rally");
+        lastActionTime = millis();
       } else if (mouseX > 250 && mouseX < 400) {
         playerAction("speech");
+        lastActionTime = millis();
       } else if (mouseX > 450 && mouseX < 600) {
         playerAction("chaos");
+        lastActionTime = millis();
       }
     }
   }
@@ -220,6 +243,8 @@ function drawPlayerActions() {
 
 /** Processes player's chosen action */
 function playerAction(action) {
+  processingTurn = true;
+  
   let change = 0;
   if (action === "rally") {
     change = 10;
@@ -228,20 +253,29 @@ function playerAction(action) {
   } else if (action === "chaos") {
     change = random() < 0.2 ? -10 : 25;
   }
+  
   targetExplosionSize += change;
   targetExplosionSize = constrain(targetExplosionSize, 0, 200);
   animationFrame = 30;
   isPlayerTurn = false;
   turnCount++;
-  checkGameOver();
+  
+  if (turnCount >= maxTurns) {
+    checkGameOver();
+  }
+  
+  processingTurn = false;
 }
 
 /** AI decides Macron's action */
 function aiAction() {
+  processingTurn = true;
+  
   let action = explosionSize < 40 ? "talks" : explosionSize < 60 ? "peace" : "sanctions";
   if (random() < 0.2) {
     action = ["talks", "peace", "sanctions"][floor(random(3))];
   }
+  
   let change = 0;
   if (action === "talks") {
     change = -5;
@@ -250,12 +284,15 @@ function aiAction() {
   } else if (action === "sanctions") {
     change = random() < 0.1 ? 10 : -20;
   }
+  
   targetExplosionSize += change;
   targetExplosionSize = constrain(targetExplosionSize, 0, 200);
   animationFrame = 30;
   isPlayerTurn = true;
-  turnCount++;
+  
   checkGameOver();
+  
+  processingTurn = false;
 }
 
 /** Animates the explosion size transition */
@@ -270,7 +307,10 @@ function animateExplosion() {
 
 /** Checks if the game should end */
 function checkGameOver() {
-  if (turnCount >= maxTurns || explosionSize >= 100 || explosionSize < 50) {
+  if (explosionSize >= 100 || (explosionSize < 50 && !isPlayerTurn)) {
+    gameState = "gameOver";
+  }
+  else if (turnCount >= maxTurns) {
     gameState = "gameOver";
   }
 }
@@ -283,4 +323,6 @@ function resetGame() {
   gameState = "start";
   isPlayerTurn = true;
   turnCount = 0;
+  processingTurn = false;
+  lastActionTime = 0;
 }
