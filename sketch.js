@@ -23,12 +23,15 @@ function draw() {
     fill(255);
     text("Sovereignty Showdown", width / 2, height / 2 - 50);
     text("Click to Start", width / 2, height / 2);
-    if (mouseIsPressed) {
+    if (mouseIsPressed && !pmouseIsPressed) {
       gameState = "playing";
     }
   } else if (gameState === "playing") {
     if (isPlayerTurn) {
       drawPlayerActions();
+      if (mouseIsPressed && !pmouseIsPressed) {
+        checkButtonClicks();
+      }
     } else {
       if (animationFrame === 0) {
         aiAction();
@@ -48,9 +51,71 @@ function draw() {
       text("Stalemate! The World Watches.", width / 2, height / 2);
     }
     text("Click to Restart", width / 2, height / 2 + 50);
-    if (mouseIsPressed) {
+    if (mouseIsPressed && !pmouseIsPressed) {
       resetGame();
     }
+  }
+  
+  pmouseIsPressed = mouseIsPressed;
+}
+
+let pmouseIsPressed = false;
+
+function checkButtonClicks() {
+  if (mouseY > height - 150 && mouseY < height - 100) {
+    if (mouseX > 50 && mouseX < 200) {
+      playerAction("rally");
+    } else if (mouseX > 250 && mouseX < 400) {
+      playerAction("speech");
+    } else if (mouseX > 450 && mouseX < 600) {
+      playerAction("chaos");
+    }
+  }
+}
+
+function mousePressed() {
+  if (gameState === "start") {
+    gameState = "playing";
+    return;
+  }
+  
+  if (gameState === "playing" && isPlayerTurn) {
+    if (mouseY > height - 150 && mouseY < height - 100) {
+      if (mouseX > 50 && mouseX < 200) {
+        playerAction("rally");
+      } else if (mouseX > 250 && mouseX < 400) {
+        playerAction("speech");
+      } else if (mouseX > 450 && mouseX < 600) {
+        playerAction("chaos");
+      }
+    }
+  }
+  
+  if (gameState === "gameOver") {
+    resetGame();
+  }
+}
+
+function mouseClicked() {
+  if (gameState === "start") {
+    gameState = "playing";
+    return;
+  }
+  
+  if (gameState === "playing" && isPlayerTurn) {
+    if (mouseY > height - 150 && mouseY < height - 100) {
+      if (mouseX > 50 && mouseX < 200) {
+        playerAction("rally");
+      } else if (mouseX > 250 && mouseX < 400) {
+        playerAction("speech");
+      } else if (mouseX > 450 && mouseX < 600) {
+        playerAction("chaos");
+      }
+    }
+  }
+  
+  if (gameState === "gameOver") {
+    resetGame();
   }
 }
 
@@ -151,21 +216,6 @@ function drawPlayerActions() {
   text("Rally (+10)", 125, height - 125);
   text("Speech (+15)", 325, height - 125);
   text("Chaos (+25, 20% -10)", 525, height - 125);
-}
-
-/** Handles mouse clicks for player actions */
-function mousePressed() {
-  if (gameState === "playing" && isPlayerTurn) {
-    if (mouseY > height - 150 && mouseY < height - 100) {
-      if (mouseX > 50 && mouseX < 200) {
-        playerAction("rally");
-      } else if (mouseX > 250 && mouseX < 400) {
-        playerAction("speech");
-      } else if (mouseX > 450 && mouseX < 600) {
-        playerAction("chaos");
-      }
-    }
-  }
 }
 
 /** Processes player's chosen action */
